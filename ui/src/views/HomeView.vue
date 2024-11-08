@@ -1,172 +1,438 @@
-<script setup lang="ts">
-import confetti from "canvas-confetti";
-import { onMounted } from "vue";
-import RiShareCircleLine from "~icons/ri/share-circle-line";
-import RiCodeBoxLine from "~icons/ri/code-box-line";
-import RiBookReadLine from "~icons/ri/book-read-line";
-import RiComputerLine from "~icons/ri/computer-line";
-import RiArrowRightSLine from "~icons/ri/arrow-right-s-line";
+<script lang="ts" setup>
+import {
+  VCard, VLoading,
+  VPageHeader, VPagination, VTabbar,
+} from "@halo-dev/components";
+import {axiosInstance} from "@halo-dev/api-client"
+import {onMounted, ref} from 'vue'
+import {Search} from '@element-plus/icons-vue'
+import {rowProps} from "element-plus";
 
-onMounted(() => {
-  confetti({
-    particleCount: 100,
-    spread: 70,
-    origin: { y: 0.6, x: 0.58 },
-  });
-});
-</script>
+const tableData = ref<any>([])
+const page = ref(1);
+const size = ref(10);
+const total = ref(0);
+const isLoading = ref(true)
+const items = [
+  {id: "1", label: "接口日志", icon: "icon-log"},
+  {id: "2", label: "基本设置", icon: "icon-log"},
+]
+const activeId = ref("1")
 
-<template>
-  <section id="plugin-starter">
-    <div class="wrapper">
-      <span class="title"> 你已经成功运行起了插件！ </span>
-      <span class="message">你可以点击下方文档继续下一步</span>
-      <div class="docs">
-        <a
-          href="https://docs.halo.run/developer-guide/plugin/publish"
-          class="docs__box"
-          target="_blank"
-        >
-          <h2 class="docs__box-title"><RiShareCircleLine />发布一个插件</h2>
-          <span class="docs__box-message">
-            了解如何与我们的社区分享您的扩展。
-          </span>
-          <span class="docs__box-arrow">
-            <RiArrowRightSLine />
-          </span>
-        </a>
-        <a
-          href="https://docs.halo.run/category/%E5%9F%BA%E7%A1%80"
-          class="docs__box"
-          target="_blank"
-        >
-          <h2 class="docs__box-title"><RiComputerLine />基础概览</h2>
-          <span class="docs__box-message">
-            了解插件的项目结构、生命周期、资源配置等。
-          </span>
-          <span class="docs__box-arrow">
-            <RiArrowRightSLine />
-          </span>
-        </a>
-        <a
-          href="https://docs.halo.run/developer-guide/plugin/examples/todolist"
-          class="docs__box group"
-          target="_blank"
-        >
-          <h2 class="docs__box-title"><RiBookReadLine />示例插件</h2>
-          <span class="docs__box-message">帮助你从 0 到 1 完成一个插件。</span>
-          <span class="docs__box-arrow">
-            <RiArrowRightSLine />
-          </span>
-        </a>
-        <a
-          href="https://docs.halo.run/category/api-%E5%8F%82%E8%80%83"
-          class="docs__box"
-          target="_blank"
-        >
-          <h2 class="docs__box-title"><RiCodeBoxLine />API 参考</h2>
-          <span class="docs__box-message">插件中的 API 列表。</span>
-          <span class="docs__box-arrow">
-            <RiArrowRightSLine />
-          </span>
-        </a>
-      </div>
-    </div>
-  </section>
-</template>
+init()
+isLoading.value = false
 
-<style lang="scss" scoped>
-#plugin-starter {
-  height: 100vh;
-  background-color: #f8fafc;
+interface ListItem {
+  value: string
+  label: string
 }
 
-.wrapper {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  gap: 1.5rem;
-
-  .title {
-    font-weight: 700;
-    font-size: 1.25rem;
-    line-height: 1.75rem;
-  }
-
-  .message {
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-    color: #4b5563;
-  }
-
-  .docs {
-    display: grid;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: 1rem;
-    max-width: 48rem;
-
-    .docs__box {
-      background-color: #fff;
-      border-radius: 0.375rem;
-      padding: 0.75rem;
-      transition-property: all;
-      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-      transition-duration: 300ms;
-      cursor: pointer;
-      filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.1))
-        drop-shadow(0 1px 1px rgb(0 0 0 / 0.06));
-
-      &:hover {
-        box-shadow:
-          0 0 0 0px #fff,
-          0 0 0 1px rgb(59 130 246 / 0.5),
-          0 0 #0000;
-      }
-
-      .docs__box-title {
-        display: flex;
-        flex-direction: row;
-        font-size: 1.125rem;
-        line-height: 1.75rem;
-        font-weight: 700;
-        margin-bottom: 2rem;
-        gap: 0.5rem;
-        align-items: center;
-      }
-
-      .docs__box-message {
-        font-size: 0.875rem;
-        line-height: 1.25rem;
-        color: #4b5563;
-      }
-
-      .docs__box-arrow {
-        pointer-events: none;
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        transition-property: all;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: 150ms;
-        color: #d1d5db;
-      }
-
-      &:hover {
-        .docs__box-arrow {
-          color: #9ca3af;
-          transform: translate(00.375rem, 0) rotate(0) skewX(0) skewY(0)
-            scaleX(1) scaleY(1);
-        }
-      }
+const optionsUsers = ref<ListItem[]>([])
+const valueUsers = ref<string[]>([])
+const loadingUsers = ref(false)
+const remoteMethodUsers = async (query: string) => {
+  if (query) {
+    loadingUsers.value = true;
+    try {
+      const response = await axiosInstance.get(`/apis/dailyActive.halo.run/v1alpha1/interfaceLog/users?username=` + query);
+      optionsUsers.value = response.data;
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      loadingUsers.value = false;
     }
+  } else {
+    optionsUsers.value = [];
   }
-
-  @media (min-width: 640px) {
-    .docs {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+const optionsClientIps = ref<ListItem[]>([])
+const valueClientIps = ref<string[]>([])
+const loadingClientIps = ref(false)
+const remoteMethodClientIps = async (query: string) => {
+  if (query) {
+    loadingClientIps.value = true;
+    try {
+      const response = await axiosInstance.get(`/apis/dailyActive.halo.run/v1alpha1/interfaceLog/clientIps?clientIp=` + query);
+      optionsClientIps.value = response.data;
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      loadingClientIps.value = false;
     }
+  } else {
+    optionsClientIps.value = [];
   }
+}
+const optionsPaths = ref<ListItem[]>([])
+const valuePaths = ref<string[]>([])
+const loadingPaths = ref(false)
+const remoteMethodPaths = async (query: string) => {
+  if (query) {
+    loadingPaths.value = true;
+    try {
+      const response = await axiosInstance.get(`/apis/dailyActive.halo.run/v1alpha1/interfaceLog/paths?path=` + query);
+      optionsPaths.value = response.data;
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      loadingPaths.value = false;
+    }
+  } else {
+    optionsPaths.value = [];
+  }
+}
+
+
+async function handlePageChange(val: number) {
+  isLoading.value = true;
+  await updateData(val);
+  isLoading.value = false;
+}
+
+function removeCircularReferences(obj: any) {
+  const seen = new WeakSet();
+  return JSON.parse(JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) {
+        return;
+      }
+      seen.add(value);
+    }
+    return value;
+  }));
+}
+
+async function updateData(pageNum: number) {
+  const requestBody = {
+    page: pageNum,
+    size: size.value,
+    username: valueUsers.value.map(user => user.substring(1)),
+    clientIp: valueClientIps.value,
+    path: valuePaths.value,
+    accessTimes: dateTime.value === '' ? [] : dateTime.value,
+  }
+  tableData.value = [];
+  await axiosInstance.post(`/apis/dailyActive.halo.run/v1alpha1/interfaceLog/search`, removeCircularReferences(requestBody))
+    .then(response => {
+      const logInfoData = response.data
+      page.value = logInfoData.page
+      size.value = logInfoData.size
+      total.value = logInfoData.total
+      for (let i = 0; i < logInfoData.items.length; i++) {
+        total.value = logInfoData.total
+        tableData.value.push({
+          id: logInfoData.items[i].id,
+          accessTime: logInfoData.items[i].accessTime,
+          username: logInfoData.items[i].username,
+          clientIp: logInfoData.items[i].clientIp,
+          path: logInfoData.items[i].path,
+          requestType: logInfoData.items[i].requestType,
+          responseStatus: logInfoData.items[i].responseStatus,
+        })
+      }
+    })
+}
+
+function init() {
+  const requestBody = {
+    page: 1,
+    size: 10,
+  }
+  axiosInstance.post("/apis/dailyActive.halo.run/v1alpha1/interfaceLog/search", requestBody)
+    .then(response => {
+      const logInfoData = response.data
+      for (let i = 0; i < logInfoData.items.length; i++) {
+        total.value = logInfoData.total
+        tableData.value.push({
+          id: logInfoData.items[i].id,
+          accessTime: logInfoData.items[i].accessTime,
+          username: logInfoData.items[i].username,
+          clientIp: logInfoData.items[i].clientIp,
+          path: logInfoData.items[i].path,
+          requestType: logInfoData.items[i].requestType,
+          responseStatus: logInfoData.items[i].responseStatus,
+        })
+      }
+    })
+}
+
+const shortcuts = [
+  {
+    text: 'Last week',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      start.setDate(start.getDate() - 7)
+      return [start, end]
+    },
+  },
+  {
+    text: 'Last month',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      start.setMonth(start.getMonth() - 1)
+      return [start, end]
+    },
+  },
+  {
+    text: 'Last 3 months',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      start.setMonth(start.getMonth() - 3)
+      return [start, end]
+    },
+  },
+]
+
+const dateTime = ref('')
+
+function search() {
+  console.log('search')
+}
+
+const tableRowClassName = ({row}: {
+  row: any
+}) => {
+  if (!row.responseStatus.startsWith('2')) {
+    return 'warning-row'
+  }
+  return ''
+}
+
+function detail() {
+  console.error('detail')
+}
+
+const inputs = ref<any>([]);
+
+function addInput() {
+  inputs.value.push({value: ''});
+}
+
+const dialogTableVisible = ref(false)
+const dialogFormVisible = ref(false)
+const formLabelWidth = '140px'
+
+const form = ref({
+  name: '',
+  region: '',
+})
+</script>
+<template>
+  <VPageHeader title="接口日志"></VPageHeader>
+  <VCard class="m-0 flex-1 md:m-4">
+    <div class="p-3">
+      <VTabbar
+        v-model:activeId="activeId"
+        :items="items"
+        :type="'pills'"
+        :direction="'row'"
+      />
+    </div>
+    <div v-if="activeId==='1'" class="mx-auto max-w-4xl px-4 md:px-8">
+      <el-config-provider :value-on-clear="null" :empty-values="[undefined, null]">
+        <div class="flex flex-wrap gap-4 items-center">
+          <el-select
+            v-model="valueUsers"
+            multiple
+            filterable
+            clearable
+            remote
+            collapse-tags
+            reserve-keyword
+            remote-show-suffix
+            collapse-tags-tooltip
+            placeholder="用户名"
+            :remote-method="remoteMethodUsers"
+            :loading="loadingUsers"
+            style="width: 230px"
+          >
+            <el-option
+              v-for="item in optionsUsers"
+              :key="item.value"
+              :label="item.value"
+              :value="item.value"
+            />
+          </el-select>
+          <el-select
+            v-model="valueClientIps"
+            multiple
+            filterable
+            remote
+            collapse-tags
+            reserve-keyword
+            remote-show-suffix
+            collapse-tags-tooltip
+            placeholder="请求IP"
+            :remote-method="remoteMethodClientIps"
+            :loading="loadingClientIps"
+            style="width: 230px"
+          >
+            <el-option
+              v-for="item in optionsClientIps"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+          <el-select
+            v-model="valuePaths"
+            multiple
+            filterable
+            remote
+            collapse-tags
+            reserve-keyword
+            remote-show-suffix
+            collapse-tags-tooltip
+            placeholder="接口路径"
+            :remote-method="remoteMethodPaths"
+            :loading="loadingPaths"
+            style="width: 230px"
+          >
+            <el-option
+              v-for="item in optionsPaths"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+          <div class="block">
+            <el-date-picker
+              v-model="dateTime"
+              type="datetimerange"
+              :shortcuts="shortcuts"
+              range-separator="to"
+              start-placeholder="Start date"
+              end-placeholder="End date"
+            />
+          </div>
+          <el-button style="color: #2f81f7;--el-button-hover-bg-color: v-bind('blue')" :dark="true"
+                     @click="updateData(1)">查询
+          </el-button>
+        </div>
+      </el-config-provider>
+      <VCard class="m-0 flex-1 md:m-4">
+        <div class="mt-4" style="height: 800px">
+          <el-table
+            v-loading="isLoading"
+            :data="tableData"
+            style="width: 100%"
+            :row-class-name="tableRowClassName">
+            <el-table-column
+              prop="accessTime"
+              label="请求时间"
+              width="240">
+            </el-table-column>
+            <el-table-column
+              prop="username"
+              label="用户名"
+              width="180">
+            </el-table-column>
+            <el-table-column
+              prop="clientIp"
+              label="请求IP"
+              width="180">
+            </el-table-column>
+            <el-table-column
+              prop="path"
+              label="请求URI"
+              width="180"
+              show-overflow-tooltip>
+            </el-table-column>
+            <el-table-column
+              prop="requestType"
+              label="请求类型"
+              width="180">
+            </el-table-column>
+            <el-table-column
+              prop="responseStatus"
+              label="响应码"
+              width="180"
+              show-overflow-tooltip>
+            </el-table-column>
+            <el-table-column>
+              <el-button size="small" @click="detail()">
+                详情
+              </el-button>
+            </el-table-column>
+          </el-table>
+        </div>
+      </VCard>
+      <VPagination v-model:page="page" v-model:size="size" v-model:total="total" @update:page="handlePageChange"/>
+    </div>
+    <div v-else-if="activeId==='2'">
+      <VCard class="m-0 flex-1 md:m-4" title="记录接口">
+        <VCard class="m-0 flex-1 md:m-4" title="包括">
+          <div>
+            <el-button @click="addInput">增加规则</el-button>
+            <el-table
+              v-loading="isLoading"
+              :data="tableData"
+              style="width: 100%"
+              :row-class-name="tableRowClassName">
+              <el-table-column
+                prop="accessTime"
+                label="id"
+                width="240"/>
+              <el-table-column
+                prop="accessTime"
+                label="规则"
+                width="240"/>
+              <el-table-column>
+                <el-button size="small" @click="dialogFormVisible = true;">
+                  编辑
+                </el-button>
+                <el-button size="small" @click="detail()">
+                  删除
+                </el-button>
+              </el-table-column>
+            </el-table>
+            <el-dialog v-model="dialogFormVisible" title="Shipping address" width="500">
+              <el-form :model="form">
+                <el-form-item label="Promotion name" :label-width="formLabelWidth">
+                  <el-input v-model="form.name" autocomplete="off" />
+                </el-form-item>
+                <el-form-item label="Zones" :label-width="formLabelWidth">
+                  <el-select v-model="form.region" placeholder="Please select a zone">
+                    <el-option label="Zone No.1" value="shanghai" />
+                    <el-option label="Zone No.2" value="beijing" />
+                  </el-select>
+                </el-form-item>
+              </el-form>
+              <template #footer>
+                <div class="dialog-footer">
+                  <el-button @click="dialogFormVisible = false">Cancel</el-button>
+                  <el-button type="primary" @click="dialogFormVisible = false" style="color: #2f81f7;--el-button-hover-bg-color: v-bind('blue')" :dark="true">
+                    Confirm
+                  </el-button>
+                </div>
+              </template>
+            </el-dialog>
+          </div>
+        </VCard>
+        <VCard class="m-0 flex-1 md:m-4" title="不包括">
+          <div>
+            <el-button @click="addInput">增加规则</el-button>
+          </div>
+        </VCard>
+      </VCard>
+    </div>
+  </VCard>
+</template>
+<style lang="scss">
+.date-picker {
+  & input {
+    border-radius: 0.375rem;
+  }
+}
+
+.el-table .warning-row {
+  background-color: oldlace;
+}
+
+.el-table .success-row {
+  background-color: #f0f9eb;
 }
 </style>
