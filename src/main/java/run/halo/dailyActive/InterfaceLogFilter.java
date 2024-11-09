@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
@@ -18,10 +17,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
-import run.halo.app.extension.ListOptions;
 import run.halo.app.extension.Metadata;
 import run.halo.app.extension.ReactiveExtensionClient;
-import run.halo.app.extension.index.query.QueryFactory;
 import run.halo.app.security.AdditionalWebFilter;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -42,39 +39,22 @@ public class InterfaceLogFilter implements AdditionalWebFilter {
 
     private final ServerSecurityContextRepository serverSecurityContextRepository;
 
-    private Mono<ServerWebExchangeMatcher> matcher;
+    private final ServerWebExchangeMatcher matcher;
 
     public InterfaceLogFilter(ReactiveExtensionClient reactiveExtensionClient,
         ServerSecurityContextRepository serverSecurityContextRepository) {
         this.client = reactiveExtensionClient;
         this.serverSecurityContextRepository = serverSecurityContextRepository;
-        matcher = generateMatcher();
-    }
-
-    public void refresh() {
-        matcher = generateMatcher();
-    }
-
-    private Mono<ServerWebExchangeMatcher> generateMatcher() {
-        return client.listAll(InterfaceLogRuleInfo.class,
-                ListOptions.builder().andQuery(QueryFactory.all()).build(),
-                Sort.unsorted())
-            .map(InterfaceLogRuleInfo::getSpec)
-            .map(s -> {
-                if (s.getIsInclude()) {
-                    return ServerWebExchangeMatchers.pathMatchers(s.getRule());
-                } else {
-                    return new NegatedServerWebExchangeMatcher(
-                        ServerWebExchangeMatchers.pathMatchers(s.getRule()));
-                }
-            })
-            .collectList()
-            .map(AndServerWebExchangeMatcher::new);
+        ServerWebExchangeMatcher apiMatcher = ServerWebExchangeMatchers.pathMatchers("/apis/**");
+        ServerWebExchangeMatcher notInterfaceLogMatcher =
+            new NegatedServerWebExchangeMatcher(ServerWebExchangeMatchers.pathMatchers(
+                "/apis/dailyActive.halo.run/v1alpha1/interfaceLog*/**"));
+        matcher = new AndServerWebExchangeMatcher(apiMatcher, notInterfaceLogMatcher);
     }
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        return matcher.flatMap(m -> m.matches(exchange)).flatMap(matchResult -> {
+        return matcher.matches(exchange).flatMap(matchResult -> {
             if (!matchResult.isMatch()) {
                 return chain.filter(exchange);
             }

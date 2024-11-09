@@ -16,7 +16,8 @@
     "axios": "^1.7.2",
     "canvas-confetti": "^1.9.3",
     "element-plus": "^2.8.6",
-    "vue": "^3.4.31"
+    "vue": "^3.4.31",
+    "vue3-json-viewer":"^2.2.2"
   },
   "devDependencies": {
     "@halo-dev/ui-plugin-bundler-kit": "^2.17.0",

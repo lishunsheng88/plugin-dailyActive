@@ -37,6 +37,7 @@ public class StarterPlugin extends BasePlugin {
     @Override
     public void start() {
         System.out.println("插件启动成功！");
+        schemeManager.register(InterfaceLogRuleInfo.class);
         schemeManager.register(InterfaceLogInfo.class, indexSpecs -> {
                 indexSpecs.add(new IndexSpec()
                     .setName("spec.username")
